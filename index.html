@@ -1,0 +1,229 @@
+
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BLL Flight Board | Billund Airport</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f7fb;
+  color: #17263b;
+}
+header {
+  background: white;
+  padding: 22px 7%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e5eaf1;
+}
+.logo { font-size: 22px; font-weight: 800; }
+.logo span { color: #2675db; }
+.live { color: #159b68; font-size: 13px; }
+main { max-width: 1150px; margin: 35px auto; padding: 0 18px; }
+h1 { font-size: 32px; margin-bottom: 5px; }
+.subtitle { color: #718096; }
+.info {
+  background: #e8f2ff;
+  padding: 15px;
+  border-radius: 12px;
+  color: #245b9c;
+  margin: 22px 0;
+  font-size: 14px;
+}
+.tabs { display: flex; gap: 10px; margin: 25px 0; }
+.tabs button, .filter button {
+  border: 0;
+  padding: 13px 22px;
+  border-radius: 9px;
+  cursor: pointer;
+  background: white;
+  color: #43536a;
+  font-weight: bold;
+}
+.tabs button.active {
+  background: #2675db;
+  color: white;
+}
+.controls {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+input {
+  width: 100%;
+  padding: 14px;
+  border: 1px solid #dce3ed;
+  border-radius: 9px;
+  font-size: 15px;
+}
+.board {
+  background: white;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 18px #17263b0a;
+}
+.board-head, .flight {
+  display: grid;
+  grid-template-columns: 90px 1fr 130px 140px;
+  gap: 12px;
+  padding: 17px 20px;
+  align-items: center;
+}
+.board-head {
+  background: #f8fafc;
+  color: #718096;
+  font-size: 12px;
+  font-weight: bold;
+}
+.flight { border-top: 1px solid #edf0f5; }
+.time { font-size: 18px; font-weight: bold; }
+.place { font-weight: bold; }
+.code { color: #718096; font-size: 13px; margin-top: 5px; }
+.status {
+  display: inline-block;
+  padding: 7px 10px;
+  border-radius: 20px;
+  background: #e6f7ef;
+  color: #168457;
+  font-size: 12px;
+  font-weight: bold;
+}
+.status.delayed { background: #fff1d9; color: #a76a00; }
+footer {
+  text-align: center;
+  padding: 30px;
+  color: #8793a5;
+  font-size: 13px;
+}
+@media(max-width:650px) {
+  header { padding: 18px; }
+  main { margin-top: 24px; }
+  .board-head, .flight {
+    grid-template-columns: 65px 1fr 100px;
+    padding: 14px 10px;
+    gap: 7px;
+  }
+  .board-head span:last-child,
+  .flight .status-wrap { display: none; }
+  h1 { font-size: 26px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">BLL <span>FLIGHT BOARD</span></div>
+  <div class="live">● Flyoversigt</div>
+</header>
+
+<main>
+  <h1>Billund Lufthavn</h1>
+  <div class="subtitle">Afgange og ankomster · BLL / EKBI</div>
+
+  <div class="info" id="notice">
+    Eksempelvisning – flydata er endnu ikke tilsluttet.
+  </div>
+
+  <div class="tabs">
+    <button class="active" onclick="showFlights('departures',this)">
+      ✈ Afgange
+    </button>
+    <button onclick="showFlights('arrivals',this)">
+      🛬 Ankomster
+    </button>
+  </div>
+
+  <div class="controls">
+    <input id="search" placeholder="Søg efter destination eller flynummer..."
+      oninput="render()">
+  </div>
+
+  <div class="board">
+    <div class="board-head">
+      <span>TID</span>
+      <span>DESTINATION</span>
+      <span>FLYNUMMER</span>
+      <span>STATUS</span>
+    </div>
+    <div id="flights"></div>
+  </div>
+</main>
+
+<footer>
+  BLL Flight Board · Uofficiel informationsside
+  <br><br>
+  <a href="https://www.bll.dk/en/flight-traffic" target="_blank">
+    Officiel flyinformation fra Billund Lufthavn
+  </a>
+</footer>
+
+<script>
+const data = {
+  departures: [
+    {time:"08:15",place:"Amsterdam",code:"KL1290",status:"Planlagt"},
+    {time:"09:30",place:"London",code:"BA821",status:"Planlagt"},
+    {time:"11:20",place:"Oslo",code:"DY999",status:"Forsinket"},
+    {time:"13:45",place:"Copenhagen",code:"SK1286",status:"Planlagt"},
+    {time:"16:10",place:"Paris",code:"AF1265",status:"Planlagt"}
+  ],
+  arrivals: [
+    {time:"08:45",place:"Frankfurt",code:"LH836",status:"Planlagt"},
+    {time:"10:15",place:"Amsterdam",code:"KL1291",status:"Landet"},
+    {time:"12:30",place:"London",code:"BA820",status:"Planlagt"},
+    {time:"14:20",place:"Oslo",code:"DY998",status:"Forsinket"},
+    {time:"17:00",place:"Copenhagen",code:"SK1285",status:"Planlagt"}
+  ]
+};
+
+let current = "departures";
+
+function showFlights(type,button) {
+  current = type;
+  document.querySelectorAll(".tabs button")
+    .forEach(b => b.classList.remove("active"));
+  button.classList.add("active");
+  render();
+}
+
+function render() {
+  const query = document.getElementById("search")
+    .value.toLowerCase();
+
+  const filtered = data[current].filter(f =>
+    f.place.toLowerCase().includes(query) ||
+    f.code.toLowerCase().includes(query)
+  );
+
+  document.getElementById("flights").innerHTML =
+    filtered.length ? filtered.map(f => `
+      <div class="flight">
+        <div class="time">${f.time}</div>
+        <div class="place">${f.place}</div>
+        <div>
+          <strong>${f.code}</strong>
+          <div class="code">Billund BLL</div>
+        </div>
+        <div class="status-wrap">
+          <span class="status ${f.status === 'Forsinket' ? 'delayed' : ''}">
+            ${f.status}
+          </span>
+        </div>
+      </div>
+    `).join("") :
+    '<div style="padding:25px">Ingen fly fundet.</div>';
+}
+
+function updateClock() {
+  // Uret kan udvides med lokal dato og opdatering.
+}
+
+render();
+setInterval(updateClock, 30000);
+</script>
+</body>
+</html>
